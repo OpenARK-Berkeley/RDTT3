@@ -23,13 +23,14 @@ class BaseFormer(nn.Module):
         super().__init__()
         self.encoder_type = encoder_type
         self.n_layers = n_layers
-        self.transformer = Transformer(
-            embedding_dim, 
-            n_heads=n_heads, 
-            n_layers=n_layers, 
-            feedforward_dim=512,
-            dropout=0.1
-        )
+        # self.transformer = Transformer(
+        #     embedding_dim, 
+        #     n_heads=n_heads, 
+        #     n_layers=n_layers, 
+        #     feedforward_dim=512,
+        #     dropout=0.1
+        # )
+        self.transformer = Transformer_CRATE(embedding_dim, n_layers, n_heads, embedding_dim // n_heads, dropout = 0.1, ista=0.1)   # Jackson 10/2
         self.linear_projection = nn.Conv1d(feat_dim , embedding_dim, 1)
         # A Layernorm and a Linear layer are applied on the encoder embeddings
         self.norm = nn.LayerNorm(embedding_dim)
