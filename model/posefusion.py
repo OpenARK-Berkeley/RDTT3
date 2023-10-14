@@ -30,7 +30,7 @@ class BaseFormer(nn.Module):
         #     feedforward_dim=512,
         #     dropout=0.1
         # )
-        self.transformer = Transformer_CRATE(embedding_dim, n_layers, n_heads, embedding_dim // n_heads, dropout = 0.1, ista=0.1)   # Jackson 10/2
+        self.transformer = Transformer_CRATE(embedding_dim, n_layers, n_heads, embedding_dim // n_heads, dropout = 0.1, ista=0.1)  
         self.linear_projection = nn.Conv1d(feat_dim , embedding_dim, 1)
         # A Layernorm and a Linear layer are applied on the encoder embeddings
         self.norm = nn.LayerNorm(embedding_dim)
