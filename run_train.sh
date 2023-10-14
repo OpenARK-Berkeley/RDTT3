@@ -6,4 +6,5 @@ python train.py --device 1 \
     --loss adds --optim_batch 4 \
     --start_epoch 0 \
     --lr 1e-5 --min_lr 1e-6 --lr_rate 0.3 --decay_margin 0.033 --decay_rate 0.82 --nepoch 60 --warm_epoch 1 \
+    --sparse 0.2
     # --filter_enhance \

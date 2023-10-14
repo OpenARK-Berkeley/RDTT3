@@ -19,7 +19,7 @@ class ModifiedResnet(nn.Module):
         return x
 
 class BaseFormer(nn.Module):
-    def __init__(self, feat_dim, embedding_dim, n_heads=2, n_layers=1, encoder_type='pytorch', require_adl=False):
+    def __init__(self, feat_dim, embedding_dim, n_heads=2, n_layers=1, encoder_type='pytorch', require_adl=False, lambd=0.1):
         super().__init__()
         self.encoder_type = encoder_type
         self.n_layers = n_layers
@@ -30,9 +30,10 @@ class BaseFormer(nn.Module):
         #     feedforward_dim=512,
         #     dropout=0.1
         # )
+        print(lambd)
         self.transformer = Transformer_CRATE(embedding_dim, 
             n_layers, n_heads, embedding_dim // n_heads, 
-            dropout = 0.1, ista=0.1)  
+            dropout = 0.1, ista=0.1, lambd=lambd)  
         self.linear_projection = nn.Conv1d(feat_dim , embedding_dim, 1)
         # A Layernorm and a Linear layer are applied on the encoder embeddings
         self.norm = nn.LayerNorm(embedding_dim)
@@ -110,18 +111,18 @@ class PosePredictor(nn.Module):
 
 ######## PoseFusion ########
 class FusionBlock(nn.Module):
-    def __init__(self, base_latent, embed_dim, n_layer1, n_layer2, require_adl=False):
+    def __init__(self, base_latent, embed_dim, n_layer1, n_layer2, require_adl=False, sparse=0.1):
         super(FusionBlock, self).__init__()
         self.embed_dim = embed_dim
         self.require_adl = require_adl
 
         if n_layer1>0:
-            self.modality_fusion = BaseFormer(base_latent, base_latent, 4, n_layer1, require_adl=require_adl)
+            self.modality_fusion = BaseFormer(base_latent, base_latent, 4, n_layer1, require_adl = require_adl, lambd = sparse)
             modality_dim = 4*base_latent
         else:
             self.modality_fusion = None
             modality_dim = 2*base_latent
-        self.point_fusion = BaseFormer(modality_dim, embed_dim, 8, n_layer2, require_adl=require_adl) if n_layer2>0 else None
+        self.point_fusion = BaseFormer(modality_dim, embed_dim, 8, n_layer2, require_adl = require_adl, lambd = sparse) if n_layer2>0 else None
         assert (self.modality_fusion is not None or self.point_fusion is not None), \
                 "<Error Message> Either the number of modality or point-wise fusion layer \
                     should be larger than 0. \
@@ -163,12 +164,12 @@ class FusionBlock(nn.Module):
         return cross_feat, global_feat 
     
 class PoseFusion(nn.Module):
-    def __init__(self, base_latent, embed_dim, n_block, n_layer1, n_layer2, require_adl=False):
+    def __init__(self, base_latent, embed_dim, n_block, n_layer1, n_layer2, require_adl=False, sparse=0.1):
         super(PoseFusion, self).__init__()
         self.n_block = n_block
         self.fusion_mode = (n_layer1 * n_layer2 > 0)
         self.require_adl = require_adl
-        self.layers = self._make_layer(base_latent, embed_dim, n_layer1, n_layer2, require_adl)
+        self.layers = self._make_layer(base_latent, embed_dim, n_layer1, n_layer2, require_adl, sparse)
         assert embed_dim == 2 * base_latent
         
     def forward(self, rgb_emb, pt_emb):
@@ -189,10 +190,10 @@ class PoseFusion(nn.Module):
             result = cross_feat if global_feat is None else global_feat
         return result if not self.require_adl else (result, adl)
     
-    def _make_layer(self, base_latent, embed_dim, n_layer1, n_layer2, require_adl):
+    def _make_layer(self, base_latent, embed_dim, n_layer1, n_layer2, require_adl, sparse):
         layers = []
         for i in range(0, self.n_block):
-            layers.append(FusionBlock(base_latent, embed_dim, n_layer1, n_layer2, require_adl=require_adl))
+            layers.append(FusionBlock(base_latent, embed_dim, n_layer1, n_layer2, require_adl, sparse))
         return nn.Sequential(*layers)
 
 
@@ -200,7 +201,7 @@ class PoseFusion(nn.Module):
 class PoseNet(nn.Module):
     def __init__(self, num_points, num_obj, \
                  base_latent=256, embedding_dim=512, fusion_block_num=1, layer_num_m=2, layer_num_p=4, \
-                 recon_choice='depth', filter_enhance=True, require_adl=False):
+                 recon_choice='depth', filter_enhance=True, require_adl=False, sparse=0.1):
         super(PoseNet, self).__init__()
         self.num_points = num_points
         self.num_obj = num_obj
@@ -222,7 +223,7 @@ class PoseNet(nn.Module):
         # modality and position interaction
         self.fusion = PoseFusion(base_latent, embedding_dim, \
                                  fusion_block_num, layer_num_m, layer_num_p, \
-                                 require_adl)
+                                 require_adl, sparse)
         self.require_adl = require_adl
         # prediction
         if self.fusion_mode:

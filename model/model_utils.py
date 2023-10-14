@@ -17,13 +17,13 @@ class PreNorm(nn.Module):
         return self.fn(self.norm(x), **kwargs)
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout = 0., step_size=0.1):
+    def __init__(self, dim, hidden_dim, dropout = 0., step_size=0.1, lambd=0.1):
         super().__init__()
         self.weight = nn.Parameter(torch.Tensor(dim, dim))
         with torch.no_grad():
             nn.init.kaiming_uniform_(self.weight)
         self.step_size = step_size
-        self.lambd = 0.1
+        self.lambd = lambd
 
     def forward(self, x):
         # compute D^T * D * x
@@ -70,7 +70,7 @@ class Attention(nn.Module):
         return self.to_out(out)
 
 class Transformer_CRATE(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, dropout = 0., ista=0.1):
+    def __init__(self, dim, depth, heads, dim_head, dropout = 0., ista=0.1, lambd=0.1):
         super().__init__()
         self.layers = nn.ModuleList([])
         self.heads = heads
@@ -79,7 +79,7 @@ class Transformer_CRATE(nn.Module):
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 PreNorm(dim, Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, dim, dropout = dropout, step_size=ista))
+                PreNorm(dim, FeedForward(dim, dim, dropout = dropout, step_size=ista, lambd=lambd))
             ]))
 
     def forward(self, x):

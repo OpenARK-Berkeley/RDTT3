@@ -24,6 +24,7 @@ parser.add_argument('--recon_choice', type=str, default = 'depth', choices=['dep
 parser.add_argument('--recon_w', default=0.3, type=float, help='recon_weight')
 parser.add_argument('--filter_enhance', action='store_true')
 parser.add_argument('--attn_diverse', action='store_true')
+parser.add_argument('--sparse', default=0.1, type=float)
 
 parser.add_argument('--base_latent', type=int, default = 128, help='base latent dim for unimodal encoder')
 parser.add_argument('--embed_dim', type=int, default = 512, help='embedding dim for transformer encoder')
@@ -150,7 +151,8 @@ def main():
                         fusion_block_num=opt.fusion_block_num, \
                         layer_num_m=opt.layer_num_m, layer_num_p=opt.layer_num_p, \
                         filter_enhance = opt.filter_enhance,\
-                        require_adl = opt.attn_diverse)
+                        require_adl = opt.attn_diverse,\
+                        sparse = opt.sparse)
     if opt.pretrain:
         tar_params = estimator.state_dict()
         src_params = torch.load(opt.pretrain, map_location=torch.device('cpu'))
