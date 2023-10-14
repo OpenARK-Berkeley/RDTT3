@@ -197,6 +197,7 @@ def main():
     logger.log(f"recon choice: {opt.recon_choice}")
     logger.log(f"filter enhance: {opt.filter_enhance}")
     logger.log(f"attn diverse: {opt.attn_diverse}")
+    logger.log(f"sparse lambda: {opt.sparse}")
 
     logger.log(f"\n=========Object 6D Pose Estimation Model Hyper Params========")
     logger.log(f"learning rate: {opt.lr}")
